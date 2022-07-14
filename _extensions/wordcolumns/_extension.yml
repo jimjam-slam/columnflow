@@ -1,0 +1,6 @@
+title: Word Columns
+author: James Goldie
+version: 0.0.1
+contributes:
+  filters:
+    - wordcolumns.lua
