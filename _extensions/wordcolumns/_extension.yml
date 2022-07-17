@@ -1,6 +1,6 @@
-title: Word Columns
+title: Columnflow
 author: James Goldie
 version: 0.0.1
 contributes:
   filters:
-    - wordcolumns.lua
+    - columnflow.lua
