@@ -1,2 +1,2 @@
 # wordcolumns
-(WIP) Quarto extension to make Quarto's native columns work in the MSWord output format
+(WIP) Quarto extension to add auto flowing columns work in Word (and potentially other formats). Potential inspo from https://github.com/jdutant/columns/blob/master/columns.lua too!
