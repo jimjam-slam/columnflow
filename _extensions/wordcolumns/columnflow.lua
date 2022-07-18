@@ -13,7 +13,11 @@ columnFilter = {
 
 -- return the filter if the format matches
 if quarto.doc.isFormat("docx") then
-  return {columnFilter}
+  return {columnFilterWord}
+-- else if quarto.doc.isFormat("oft") then
+--   return {columnFilterODT}
+-- else if quarto.doc.isFormat("pdf") then
+--   return {columnFilterPDF}
 else
   return
 end
