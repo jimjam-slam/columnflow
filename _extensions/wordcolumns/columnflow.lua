@@ -1,4 +1,4 @@
-columnFilter = {
+columnFilterWord = {
   Div = function(el)
     
     if el.classes:includes("columns") then
@@ -12,6 +12,22 @@ columnFilter = {
       -- that's going to make converting a div to a section a pain in the butt!
       -- we'll have to traverse the doc to find existing sections
       -- http://officeopenxml.com/WPsection.php
+
+      -- docx writer:
+      -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Docx.hs
+
+  
+      quarto.utils.dump(el.content)
+  
+    end
+  end
+}
+
+columnFilterODT = {
+  Div = function(el)
+    
+    if el.classes:includes("columns") then
+      -- do the thing
       
       -- it looks much easier in odt format:
       -- the section gets a parent element, text:section, with properties:
@@ -27,8 +43,17 @@ columnFilter = {
       --     </style:columns>
       --   </style:section-properties>
       -- </style:style>
+
+      -- odt writer:
+      -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/ODT.hs
+
+      -- create the text:section that will hold our columned content
+      pandoc.RawBlock("opendocument",
+        '<text:section text:style-name="Sect1" text:name="TextSection">')
+
+      -- create a style:style that will go in office:automatic-styles
   
-      quarto.utils.dump(el)
+      quarto.utils.dump(el.content)
   
     end
   end
@@ -36,10 +61,10 @@ columnFilter = {
 
 
 -- return the filter if the format matches
-if quarto.doc.isFormat("docx") then
+if quarto.doc.isFormat("odt") then
+  return {columnFilterODT}
+elseif quarto.doc.isFormat("docx") then
   return {columnFilterWord}
--- else if quarto.doc.isFormat("oft") then
---   return {columnFilterODT}
 -- else if quarto.doc.isFormat("pdf") then
 --   return {columnFilterPDF}
 else
