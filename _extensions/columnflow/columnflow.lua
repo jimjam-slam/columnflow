@@ -4,19 +4,7 @@ columnFilterWord = {
     if el.classes:includes("columns") then
       -- do the thing
 
-      -- okay, section properties are kind of insane in word/odt:
-      -- the sectPr element that column defs go in EITHER goes inside the last
-      -- par of the section (for all sections but the last) or as the last child
-      -- of the body element (for the last section).
-
-      -- that's going to make converting a div to a section a pain in the butt!
-      -- we'll have to traverse the doc to find existing sections
-      -- http://officeopenxml.com/WPsection.php
-
-      -- docx writer:
-      -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Docx.hs
-
-      -- 1) write the style element wit hthe column spec
+      -- 1) write the style element with the column spec
       column_spec_inline = pandoc.RawInline("openxml", [[
         <w:sectPr>
           <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
@@ -28,31 +16,22 @@ columnFilterWord = {
       -- 2) locate the last para in this div
       last_par = el.content[#el.content]
 
-      -- last_par.insert(#last_par, pandoc.Str("HELLO"))
-
       quarto.utils.dump(">>> Last par reference")
       quarto.utils.dump(last_par)
-
-      -- quarto.utils.dump(">>> Last par content")
-      -- quarto.utils.dump(last_par.content)
-      table.insert(
-        last_par.content,
-        -- #last_par.content + 1,
-        1,
-        -- pandoc.Str("HELLO")
-        column_spec_inline
-      )
-
+      
       quarto.utils.dump(">>> Last par in original context:")
       quarto.utils.dump(el.content[#el.content])
-
+      
       -- 3) insert it
+      table.insert(
+        last_par.content,
+        1,
+        column_spec_inline)
 
-      -- https://pandoc.org/lua-filters.html#pandoc.list:insert
-      -- pandoc.List:insert ([pos], value)
-
-      -- 4) (let's forget baout the surrounding context for now;
-      --    hopefully the docx writer will sort it)
+      -- 4) now we need to insert a section break _before_ this
+      --    content (so that the column start in the right place)
+      --    can we be cheeky and just insert it at the start of
+      --    this content? no, they'll start one par late :/
 
       return el
   
