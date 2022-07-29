@@ -3,7 +3,7 @@ title: "My Word column example"
 author: "James Goldie"
 format: docx
 filters:
-  - _extensions/wordcolumns/columnflow.lua
+  - _extensions/columnflow/columnflow.lua
 ---
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec cursus mi id diam dignissim aliquet. Vestibulum laoreet lacus mauris, a aliquet neque porttitor non. Maecenas dignissim varius metus in cursus. Cras semper ligula nec imperdiet facilisis. Maecenas porttitor commodo ornare. Sed venenatis vel ex nec congue. Vivamus ligula neque, tempor quis vehicula eget, interdum ut libero. Integer mattis tempor nunc, ornare ultrices est tempor sit amet. Mauris eget pharetra orci, ut tristique diam. Donec in finibus quam, quis pellentesque est. Vestibulum convallis molestie magna non elementum. Nullam quis augue molestie, euismod quam eu, accumsan nulla. Sed hendrerit, mauris in consectetur gravida, lectus lacus sodales ex, sed dictum dolor dolor sed est.
