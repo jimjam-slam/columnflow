@@ -34,31 +34,31 @@ columnFilterWord = {
     end
 
     -- else, start by working out which blocks are div.columns and which aren't
-    quarto.utils.dump(">>> CHECKING EACH BLOCK")
-    col_divs = {}
-    before_col_divs = {}
-    other_blocks = {}
-    for i, v in ipairs(all_blocks) do
-      if string.find(tostring(v), "^Div") and v.classes:includes("columns") then
-        table.insert(col_divs, i)
-        if (i > 0) then
-          table.insert(before_col_divs, i - 1)
-        end
-      else
-        table.insert(other_blocks, i)
-      end
-    end
+    -- quarto.utils.dump(">>> CHECKING EACH BLOCK")
+    -- col_divs = {}
+    -- before_col_divs = {}
+    -- other_blocks = {}
+    -- for i, v in ipairs(all_blocks) do
+    --   if string.find(tostring(v), "^Div") and v.classes:includes("columns") then
+    --     table.insert(col_divs, i)
+    --     if (i > 0) then
+    --       table.insert(before_col_divs, i - 1)
+    --     end
+    --   else
+    --     table.insert(other_blocks, i)
+    --   end
+    -- end
 
     
     -- now, which other_blocks are right before div.columns? they need 1-col
     -- specs
     -- ie. intersection other other_blocks and before_col_divs
-    single_col_targets = intersection(other_blocks, before_col_divs)
+    -- single_col_targets = intersection(other_blocks, before_col_divs)
 
-    quarto.utils.dump(">>> BLOCKS THAT ARE DIV.COLUMNS")
-    quarto.utils.dump(col_divs)
-    quarto.utils.dump(">>> BLOCKS WHERE WE TARGET 1-COL SPECS:")
-    quarto.utils.dump(single_col_targets)
+    -- quarto.utils.dump(">>> BLOCKS THAT ARE DIV.COLUMNS")
+    -- quarto.utils.dump(col_divs)
+    -- quarto.utils.dump(">>> BLOCKS WHERE WE TARGET 1-COL SPECS:")
+    -- quarto.utils.dump(single_col_targets)
     
 
     -- 3) insert the 1-col spec into the last par of each previous block
@@ -74,14 +74,21 @@ columnFilterWord = {
 
     -- should <w:sectPr> be inside <w:pPR>? Compare to a real word doc!
 
-    single_column_spec_inline = pandoc.RawInline("openxml",
-      [[<w:sectPr><w:cols w:num="1"></w:cols></w:sectPr>]])
+    -- single_column_spec_inline = pandoc.RawInline("openxml",
+    --   [[<w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr>]])
       
-      for i, n in pairs(single_col_targets) do
-        quarto.utils.dump(">>>>>> INSERTING SINGLE-COL SPEC INTO BLOCK " .. n)
-        table.insert(all_blocks[n].content, 1, single_column_spec_inline)
-      end
+      -- for i, n in pairs(single_col_targets) do
+      --   quarto.utils.dump(">>>>>> INSERTING SINGLE-COL SPEC INTO BLOCK " .. n)
+      --   table.insert(all_blocks[n].content, 1, single_column_spec_inline)
+      -- end
       
+    -- just insert a single col spec right at the end
+    table.insert(all_blocks, #all_blocks + 1,
+      pandoc.RawBlock(
+        "openxml",
+        [[<w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr>]]))
+
+
     -- 4) insert the 1-col spec into the last par, if this is the body and not
     --    a section (AND if the section isn't the last par!)
     -- TODO - do we need to do anything with the end of the doc?
@@ -95,26 +102,44 @@ columnFilterWord = {
       -- do the thing
       quarto.utils.dump(">>> PROCESSING DIV.COLUMNS")
 
+      -- word generally puts the style info in the last par of the section, and
+      -- it's supposed to put the previous section's info i nthe last par of
+      -- _that_ section. but often it cheats and creates extra, empty pars w/
+      -- no content in them, just to store the section info (esp if it's a
+      -- single par section!). so maybe i should just be lazy and do it that
+      -- way. no doc scanning required?
+
       -- 1) write the style element with the column spec
+      -- TODO - is w:space in cols or col?
+      -- this should all be in w:pPr!
+      -- start of column section content seems to just be 
       column_spec_inline = pandoc.RawInline("openxml", [[
-        <w:sectPr>
-          <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
-            <w:col w:w="5760" w:space="720"/>
-            <w:col w:w="2880"/>
-          </w:cols>
-        </w:sectPr>]])
+        <w:pPr>
+          <w:sectPr>
+            <w:type w:val="continuous" />
+            <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
+              <w:col w:w="5760" w:space="720"/>
+              <w:col w:w="2880"/>
+            </w:cols>
+          </w:sectPr>
+        </w:pPr>]])
 
-      -- 2) locate the last para in this div
-      last_par = el.content[#el.content]
+      -- should have w:space?
+      single_column_spec_inline = pandoc.RawInline("openxml",
+        [[<w:pPr><w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr></w:pPr>]])
 
-      -- quarto.utils.dump(">>> Last par reference")
-      -- quarto.utils.dump(last_par)
-      
-      -- quarto.utils.dump(">>> Last par in original context:")
-      -- quarto.utils.dump(el.content[#el.content])
-      
-      -- 3) insert it
-      table.insert(last_par.content, 1, column_spec_inline)
+      if #el.content > 1 then
+        -- if there're multiple pars, insert the column specs into them inline
+        quarto.utils.dump(">>> MULTI PAR SECTION")
+        table.insert(el.content[1].content, 1, single_column_spec_inline)
+        table.insert(el.content[#el.content].content, 1, column_spec_inline)
+      else
+        -- quarto.utils.dump(">>> SINGLE PAR SECTION")
+        -- if not, create the dummy pars first
+        table.insert(el.content, 1, pandoc.Para(single_column_spec_inline))
+        table.insert(el.content, #el.content + 1,
+          pandoc.Para(column_spec_inline))
+      end      
 
       -- 4) now we need to insert a section break _before_ this
       --    content (so that the column start in the right place)
