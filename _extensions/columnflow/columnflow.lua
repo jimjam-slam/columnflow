@@ -44,10 +44,10 @@ columnFilterWord = {
       quarto.utils.dump(el.content[#el.content])
       
       -- 3) insert it
-      -- table.insert(
-      --   last_par.content,
-      --   1,
-      --   column_spec_inline)
+      table.insert(
+        last_par.content,
+        1,
+        column_spec_inline)
 
       -- 4) now we need to insert a section break _before_ this
       --    content (so that the column start in the right place)
