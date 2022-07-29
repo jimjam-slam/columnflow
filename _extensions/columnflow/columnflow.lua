@@ -98,7 +98,7 @@ columnFilterWord = {
 
   Div = function(el)
     
-    if el.classes:includes("columns") then
+    if el.classes:includes("columnflow") then
       -- do the thing
       quarto.utils.dump(">>> PROCESSING DIV.COLUMNS")
 
