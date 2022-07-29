@@ -1,8 +1,29 @@
 columnFilterWord = {
+  Blocks = function(all_blocks)
+    quarto.utils.dump(">>> PROCESSING BLOCK LIST")
+    quarto.utils.dump(all_blocks)
+
+    -- this runs once for the columns section, then again for
+    -- the "top" section (all the pars)
+
+    -- in the latter run, that section appears as a div (so we have a list of blocks - some are paras, some are divs)
+
+    -- so here's what we do:
+    -- 1) identify the div.columns in all_blocks (what're their positions?)
+    -- 2) insert the column spec into the last par of each div.columns
+    -- 3) insert the 1-col spec into the last par of each previous block
+    -- 4) insert the 1-col spec into the last par, if this is the body and not
+    --    a section (AND if the section isn't the last par!)
+
+    -- ... how do i check the type of this list?
+
+  end,
+
   Div = function(el)
     
     if el.classes:includes("columns") then
       -- do the thing
+      quarto.utils.dump(">>> PROCESSING COLUMNS SECTION")
 
       -- 1) write the style element with the column spec
       column_spec_inline = pandoc.RawInline("openxml", [[
@@ -23,10 +44,10 @@ columnFilterWord = {
       quarto.utils.dump(el.content[#el.content])
       
       -- 3) insert it
-      table.insert(
-        last_par.content,
-        1,
-        column_spec_inline)
+      -- table.insert(
+      --   last_par.content,
+      --   1,
+      --   column_spec_inline)
 
       -- 4) now we need to insert a section break _before_ this
       --    content (so that the column start in the right place)
