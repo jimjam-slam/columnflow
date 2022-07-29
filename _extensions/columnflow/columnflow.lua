@@ -1,7 +1,18 @@
+-- james goldie, july 2022
+
+-- adapted from https://www.lua.org/pil/13.1.html
+function intersection(a, b)
+  local res = {}
+  for k in pairs(a) do
+    res[k] = b[k]
+  end
+  return res
+end
+
 columnFilterWord = {
   Blocks = function(all_blocks)
     quarto.utils.dump(">>> PROCESSING BLOCK LIST")
-    quarto.utils.dump(all_blocks)
+    -- quarto.utils.dump(all_blocks)
 
     -- this runs once for the columns section, then again for
     -- the "top" section (all the pars)
@@ -9,13 +20,72 @@ columnFilterWord = {
     -- in the latter run, that section appears as a div (so we have a list of blocks - some are paras, some are divs)
 
     -- so here's what we do:
-    -- 1) identify the div.columns in all_blocks (what're their positions?)
-    -- 2) insert the column spec into the last par of each div.columns
+    -- 0) check the last par in the list. is it a par that strats with a rawinline? if so, bail out. else,
+    last_block = all_blocks[#all_blocks]
+    quarto.utils.dump(">>>>>> LAST BLOCK ATTRIBUTES ARE...")
+    quarto.utils.dump(last_block.listAttributes)
+    quarto.utils.dump(">>>>>> LAST BLOCK'S FIRST CONTENT IS...")
+    quarto.utils.dump(last_block.content[1])
+
+    -- skip this invocation of the filter if the last block starts with a
+    -- column spec
+    if string.find(tostring(last_block.content[1]), "<w:cols") then
+      return all_blocks
+    end
+
+    -- else, start by working out which blocks are div.columns and which aren't
+    quarto.utils.dump(">>> CHECKING EACH BLOCK")
+    col_divs = {}
+    before_col_divs = {}
+    other_blocks = {}
+    for i, v in ipairs(all_blocks) do
+      if string.find(tostring(v), "^Div") and v.classes:includes("columns") then
+        table.insert(col_divs, i)
+        if (i > 0) then
+          table.insert(before_col_divs, i - 1)
+        end
+      else
+        table.insert(other_blocks, i)
+      end
+    end
+
+    
+    -- now, which other_blocks are right before div.columns? they need 1-col
+    -- specs
+    -- ie. intersection other other_blocks and before_col_divs
+    single_col_targets = intersection(other_blocks, before_col_divs)
+
+    quarto.utils.dump(">>> BLOCKS THAT ARE DIV.COLUMNS")
+    quarto.utils.dump(col_divs)
+    quarto.utils.dump(">>> BLOCKS WHERE WE TARGET 1-COL SPECS:")
+    quarto.utils.dump(single_col_targets)
+    
+
     -- 3) insert the 1-col spec into the last par of each previous block
+    -- NOTE - i might have this a bit wrong. this creates:
+    -- <w:p>
+    --   <w:pPr>
+    --     <w:pStyle w:val="BodyText" />
+    --   </w:pPr>
+    --   <w:sectPr>
+    --     <w:cols w:num="1"></w:cols>
+    --   </w:sectPr>
+    --   <w:r> ... paragraph content goes here
+
+    -- should <w:sectPr> be inside <w:pPR>? Compare to a real word doc!
+
+    single_column_spec_inline = pandoc.RawInline("openxml",
+      [[<w:sectPr><w:cols w:num="1"></w:cols></w:sectPr>]])
+      
+      for i, n in pairs(single_col_targets) do
+        quarto.utils.dump(">>>>>> INSERTING SINGLE-COL SPEC INTO BLOCK " .. n)
+        table.insert(all_blocks[n].content, 1, single_column_spec_inline)
+      end
+      
     -- 4) insert the 1-col spec into the last par, if this is the body and not
     --    a section (AND if the section isn't the last par!)
-
-    -- ... how do i check the type of this list?
+    -- TODO - do we need to do anything with the end of the doc?
+    return all_blocks
 
   end,
 
@@ -23,7 +93,7 @@ columnFilterWord = {
     
     if el.classes:includes("columns") then
       -- do the thing
-      quarto.utils.dump(">>> PROCESSING COLUMNS SECTION")
+      quarto.utils.dump(">>> PROCESSING DIV.COLUMNS")
 
       -- 1) write the style element with the column spec
       column_spec_inline = pandoc.RawInline("openxml", [[
@@ -37,17 +107,14 @@ columnFilterWord = {
       -- 2) locate the last para in this div
       last_par = el.content[#el.content]
 
-      quarto.utils.dump(">>> Last par reference")
-      quarto.utils.dump(last_par)
+      -- quarto.utils.dump(">>> Last par reference")
+      -- quarto.utils.dump(last_par)
       
-      quarto.utils.dump(">>> Last par in original context:")
-      quarto.utils.dump(el.content[#el.content])
+      -- quarto.utils.dump(">>> Last par in original context:")
+      -- quarto.utils.dump(el.content[#el.content])
       
       -- 3) insert it
-      table.insert(
-        last_par.content,
-        1,
-        column_spec_inline)
+      table.insert(last_par.content, 1, column_spec_inline)
 
       -- 4) now we need to insert a section break _before_ this
       --    content (so that the column start in the right place)
@@ -98,6 +165,7 @@ columnFilterODT = {
 
 
 -- return the filter if the format matches
+-- NOTE - could use the pandoc global FORMAT here instead!
 if quarto.doc.isFormat("odt") then
   return {columnFilterODT}
 elseif quarto.doc.isFormat("docx") then
