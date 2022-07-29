@@ -16,8 +16,45 @@ columnFilterWord = {
       -- docx writer:
       -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Docx.hs
 
-  
-      quarto.utils.dump(el.content)
+      -- 1) write the style element wit hthe column spec
+      column_spec_inline = pandoc.RawInline("openxml", [[
+        <w:sectPr>
+          <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
+            <w:col w:w="5760" w:space="720"/>
+            <w:col w:w="2880"/>
+          </w:cols>
+        </w:sectPr>]])
+
+      -- 2) locate the last para in this div
+      last_par = el.content[#el.content]
+
+      -- last_par.insert(#last_par, pandoc.Str("HELLO"))
+
+      quarto.utils.dump(">>> Last par reference")
+      quarto.utils.dump(last_par)
+
+      -- quarto.utils.dump(">>> Last par content")
+      -- quarto.utils.dump(last_par.content)
+      table.insert(
+        last_par.content,
+        -- #last_par.content + 1,
+        1,
+        -- pandoc.Str("HELLO")
+        column_spec_inline
+      )
+
+      quarto.utils.dump(">>> Last par in original context:")
+      quarto.utils.dump(el.content[#el.content])
+
+      -- 3) insert it
+
+      -- https://pandoc.org/lua-filters.html#pandoc.list:insert
+      -- pandoc.List:insert ([pos], value)
+
+      -- 4) (let's forget baout the surrounding context for now;
+      --    hopefully the docx writer will sort it)
+
+      return el
   
     end
   end
