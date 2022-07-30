@@ -11,76 +11,13 @@ end
 
 columnFilterWord = {
   Blocks = function(all_blocks)
-    quarto.utils.dump(">>> PROCESSING BLOCK LIST")
-    -- quarto.utils.dump(all_blocks)
 
-    -- this runs once for the columns section, then again for
-    -- the "top" section (all the pars)
-
-    -- in the latter run, that section appears as a div (so we have a list of blocks - some are paras, some are divs)
-
-    -- so here's what we do:
-    -- 0) check the last par in the list. is it a par that strats with a rawinline? if so, bail out. else,
-    last_block = all_blocks[#all_blocks]
-    quarto.utils.dump(">>>>>> LAST BLOCK ATTRIBUTES ARE...")
-    quarto.utils.dump(last_block.listAttributes)
-    quarto.utils.dump(">>>>>> LAST BLOCK'S FIRST CONTENT IS...")
-    quarto.utils.dump(last_block.content[1])
-
-    -- skip this invocation of the filter if the last block starts with a
-    -- column spec
+    -- abort if this blocklist isn't the main article body
+    -- TODO - tighten this up! we need to be 100% sure this is the main article
+    -- body and not some other subsection
     if string.find(tostring(last_block.content[1]), "<w:cols") then
       return all_blocks
     end
-
-    -- else, start by working out which blocks are div.columns and which aren't
-    -- quarto.utils.dump(">>> CHECKING EACH BLOCK")
-    -- col_divs = {}
-    -- before_col_divs = {}
-    -- other_blocks = {}
-    -- for i, v in ipairs(all_blocks) do
-    --   if string.find(tostring(v), "^Div") and v.classes:includes("columns") then
-    --     table.insert(col_divs, i)
-    --     if (i > 0) then
-    --       table.insert(before_col_divs, i - 1)
-    --     end
-    --   else
-    --     table.insert(other_blocks, i)
-    --   end
-    -- end
-
-    
-    -- now, which other_blocks are right before div.columns? they need 1-col
-    -- specs
-    -- ie. intersection other other_blocks and before_col_divs
-    -- single_col_targets = intersection(other_blocks, before_col_divs)
-
-    -- quarto.utils.dump(">>> BLOCKS THAT ARE DIV.COLUMNS")
-    -- quarto.utils.dump(col_divs)
-    -- quarto.utils.dump(">>> BLOCKS WHERE WE TARGET 1-COL SPECS:")
-    -- quarto.utils.dump(single_col_targets)
-    
-
-    -- 3) insert the 1-col spec into the last par of each previous block
-    -- NOTE - i might have this a bit wrong. this creates:
-    -- <w:p>
-    --   <w:pPr>
-    --     <w:pStyle w:val="BodyText" />
-    --   </w:pPr>
-    --   <w:sectPr>
-    --     <w:cols w:num="1"></w:cols>
-    --   </w:sectPr>
-    --   <w:r> ... paragraph content goes here
-
-    -- should <w:sectPr> be inside <w:pPR>? Compare to a real word doc!
-
-    -- single_column_spec_inline = pandoc.RawInline("openxml",
-    --   [[<w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr>]])
-      
-      -- for i, n in pairs(single_col_targets) do
-      --   quarto.utils.dump(">>>>>> INSERTING SINGLE-COL SPEC INTO BLOCK " .. n)
-      --   table.insert(all_blocks[n].content, 1, single_column_spec_inline)
-      -- end
       
     -- just insert a single col spec right at the end
     table.insert(all_blocks, #all_blocks + 1,
@@ -88,10 +25,6 @@ columnFilterWord = {
         "openxml",
         [[<w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr>]]))
 
-
-    -- 4) insert the 1-col spec into the last par, if this is the body and not
-    --    a section (AND if the section isn't the last par!)
-    -- TODO - do we need to do anything with the end of the doc?
     return all_blocks
 
   end,
@@ -100,7 +33,8 @@ columnFilterWord = {
     
     if el.classes:includes("columnflow") then
       -- do the thing
-      quarto.utils.dump(">>> PROCESSING DIV.COLUMNS")
+      quarto.utils.dump(">>> PROCESSING DIV.COLUMNS. ATTRIBUTES ARE:")
+      quarto.utils.dump(last_block.listAttributes)
 
       -- word generally puts the style info in the last par of the section, and
       -- it's supposed to put the previous section's info i nthe last par of
@@ -110,9 +44,7 @@ columnFilterWord = {
       -- way. no doc scanning required?
 
       -- 1) write the style element with the column spec
-      -- TODO - is w:space in cols or col?
-      -- this should all be in w:pPr!
-      -- start of column section content seems to just be 
+      -- TODO - column count, widths, gaps etc shouldn't be hardcoded!
       column_spec_inline = pandoc.RawInline("openxml", [[
         <w:pPr>
           <w:sectPr>
