@@ -15,7 +15,7 @@ columnFilterWord = {
     -- abort if this blocklist isn't the main article body
     -- TODO - tighten this up! we need to be 100% sure this is the main article
     -- body and not some other subsection
-    if string.find(tostring(last_block.content[1]), "<w:cols") then
+    if string.find(tostring(all_blocks[#all_blocks].content[1]), "<w:cols") then
       return all_blocks
     end
       
