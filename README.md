@@ -2,6 +2,26 @@
 
 (WIP) Quarto extension to add auto flowing columns work in Word (and potentially other formats). Potential inspo from https://github.com/jdutant/columns/blob/master/columns.lua too!
 
+## Install
+
+Quarto users ought to be able to install this as an extension:
+
+```
+quarto install extension jimjam-slam/columnflow
+```
+
+Then add the filter to your document's frontmatter:
+
+````
+---
+title: My Environments Document
+format:
+  pdf: default
+filters:
+  - columnflow
+---
+````
+
 ## Use
 
 Surround a block with the `.columnflow` class to divide it into columns!
