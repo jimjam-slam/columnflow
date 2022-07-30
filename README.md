@@ -15,8 +15,7 @@ Then add the filter to your document's frontmatter:
 ````
 ---
 title: My Environments Document
-format:
-  pdf: default
+format: docx
 filters:
   - columnflow
 ---
