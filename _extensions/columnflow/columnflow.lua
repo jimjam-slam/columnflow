@@ -34,7 +34,7 @@ columnFilterWord = {
     if el.classes:includes("columnflow") then
       -- do the thing
       quarto.utils.dump(">>> PROCESSING DIV.COLUMNS. ATTRIBUTES ARE:")
-      quarto.utils.dump(last_block.listAttributes)
+      quarto.utils.dump(el.listAttributes)
 
       -- word generally puts the style info in the last par of the section, and
       -- it's supposed to put the previous section's info i nthe last par of
