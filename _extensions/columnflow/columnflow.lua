@@ -33,8 +33,41 @@ columnFilterWord = {
     
     if el.classes:includes("columnflow") then
       -- do the thing
-      quarto.utils.dump(">>> PROCESSING DIV.COLUMNS. ATTRIBUTES ARE:")
-      quarto.utils.dump(el.listAttributes)
+      -- quarto.utils.dump(">>> PROCESSING DIV.COLUMNS. ATTRIBUTES ARE:")
+      -- quarto.utils.dump(el.attributes)
+      -- quarto.utils.dump(el.attributes.testcolor)
+
+      -- draw a border if col-sep is present
+      sep = (el.attributes["col-sep"] ~= nil) and "1" or "0"
+      -- gap between columns: default to 720 (20ths of an inch?)
+      space =
+        (el.attributes["col-gap"] ~= nil) and
+        el.attributes["col-gap"] or
+        "720"
+
+      -- get the column width/color
+      if el.attributes["col-widths"] ~= nil then
+        -- unequal widths: split the widths up and map to column spec
+        
+        -- TODO - lua doesn't have a string split function???
+        -- http://lua-users.org/wiki/SplitJoin
+
+        -- col_spec_middle = 
+        --   '<w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">' ..
+        --   '<w:col w:w="5760" w:space="720"/>' ..
+        --   '<w:col w:w="2880"/>'
+        
+      else 
+        if el.attributes["col-count"] ~= nil then
+          col_count = el.attributes["col-count"]
+        else
+          col_count = 2
+        end
+        col_spec_middle = 
+          '<w:cols w:num="' .. col_count .. '" w:sep="' .. sep ..
+          '" w:space="' ..space .. '" w:equalWidth="1">'
+        
+      end
 
       -- word generally puts the style info in the last par of the section, and
       -- it's supposed to put the previous section's info i nthe last par of
@@ -45,16 +78,16 @@ columnFilterWord = {
 
       -- 1) write the style element with the column spec
       -- TODO - column count, widths, gaps etc shouldn't be hardcoded!
-      column_spec_inline = pandoc.RawInline("openxml", [[
-        <w:pPr>
-          <w:sectPr>
-            <w:type w:val="continuous" />
-            <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
-              <w:col w:w="5760" w:space="720"/>
-              <w:col w:w="2880"/>
-            </w:cols>
-          </w:sectPr>
-        </w:pPr>]])
+      col_spec_start = [[<w:pPr><w:sectPr><w:type w:val="continuous" />]]
+      col_spec_end = [[</w:cols></w:sectPr></w:pPr>]]
+
+      -- column_spec_inline = pandoc.RawInline("openxml",
+      -- [[  
+      --   <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
+      --     <w:col w:w="5760" w:space="720"/>
+      --     <w:col w:w="2880"/>
+      -- ]])
+      col_spec = col_spec_start .. col_spec_middle .. col_spec_end
 
       -- should have w:space?
       single_column_spec_inline = pandoc.RawInline("openxml",
