@@ -1,2 +1,5 @@
 # internal example testing folder
 examples/
+
+# system files
+.DS_Store
