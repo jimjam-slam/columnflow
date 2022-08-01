@@ -1,6 +1,6 @@
 -- james goldie, july 2022
 
--- adapted from https://www.lua.org/pil/13.1.html
+--helper adapted from https://www.lua.org/pil/13.1.html
 function intersection(a, b)
   local res = {}
   for k in pairs(a) do
@@ -9,6 +9,11 @@ function intersection(a, b)
   return res
 end
 
+-- the word filter has two elements:
+--  - Div processes marked .columnflow sections, adding the user's specified
+--    columns to the last par and a single-column section marker to the start
+--  - Blocks adds a single-column spec to the very end of the doc (this is
+--    required by Word's section rules)
 columnFilterWord = {
   Blocks = function(all_blocks)
 
@@ -32,87 +37,121 @@ columnFilterWord = {
   Div = function(el)
     
     if el.classes:includes("columnflow") then
-      -- do the thing
-      -- quarto.utils.dump(">>> PROCESSING DIV.COLUMNS. ATTRIBUTES ARE:")
-      -- quarto.utils.dump(el.attributes)
-      -- quarto.utils.dump(el.attributes.testcolor)
+    
+      -- 1) get the relevant attributes from the block attributes:
+      --    - count: number of equal-width columns
+      --    - widths: width of each column, separated by commas (+ opt. spaces)
+      --    - space: spacing after each column. if one is provided, it's used
+      --        for each column except the last
+      --    - sep: if provided, draw a line bwteen each column
 
       -- draw a border if col-sep is present
-      sep = (el.attributes["col-sep"] ~= nil) and "1" or "0"
-      -- gap between columns: default to 720 (20ths of an inch?)
-      space =
-        (el.attributes["col-gap"] ~= nil) and
-        el.attributes["col-gap"] or
+      col_sep = (el.attributes["col-sep"] ~= nil) and "1" or "0"
+      -- gap between columns: default to 720 (1440ths of an inch?)
+      col_space =
+        (el.attributes["col-spaces"] ~= nil) and
+        el.attributes["col-spaces"] or
         "720"
+
+      -- 2) construct the middle of the column spec (where we actually define
+      -- the number, width and spacing of columns)
 
       -- get the column width/color
       if el.attributes["col-widths"] ~= nil then
         -- unequal widths: split the widths up and map to column spec
+        quarto.utils.dump(">>>>>> Unequal width columns:")
         
-        -- TODO - lua doesn't have a string split function???
-        -- http://lua-users.org/wiki/SplitJoin
+        -- extract the widths
+        col_widths = {}
 
-        -- col_spec_middle = 
-        --   '<w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">' ..
-        --   '<w:col w:w="5760" w:space="720"/>' ..
-        --   '<w:col w:w="2880"/>'
+        for i in string.gmatch(col_widths, ",%S+") do
+          table.insert(col_widths, i)
+        end
+        quarto.utils.dump(col_widths)
+
+        -- extract the space after each column
+        col_space = {}
+        for i in string.gmatch(col_space, ",%S+") do
+          table.insert(col_space, i)
+        end
+        quarto.utils.dump(">>>>>> Spaces:")
+        quarto.utils.dump(col_space)
+
+        -- check to make sure we have enough seps to match the widths.
+        -- if one is specified, recycle it over all columns but the last
+        -- if none are specified, recycle a default of 720 (0.5 inches)
+        if (#col_space == 0) then
+          table.insert(col_space, "720")
+        end
+        if (#col_space == 1) then
+          while #col_space < n_col_widths do
+            table.insert(col_space, col_space[1])
+          end
+          -- make the last col spacing 0 if we're relying on recycling
+          col_space[#col_space] = "0"
+        end
+        assert(#col_widths ~= #col_space, [[
+          Error: when you specify columns of unequal widths, either:
+            (a) specify the spacing after each column,
+            (b) specify one spacing, to be used for all columns but the
+              last,
+            (c) do not specify any spacing (default will be 720
+                for all columns but the last) ]])
+
+        -- begin the column spec with <w:cols>
+        col_spec_middle =
+          '<w:cols w:num="' .. #col_widths .. '" w:sep="' .. col_sep .. '" w:equalWidth="0">\n'
+
+        -- add the <w:col> child elements, converting widths and spacing
+        -- from inches to 1440ths of an inch as we go
+        for i = 1,#col_widths do
+          col_spec_middle = col_spec_middle ..
+            '<w:col w:w="' .. col_widths[i] * 1440 ..
+            '" w:space="' .. col_space[i] * 1440.. '"/>\n'
+        end
         
-      else 
+      else
+        -- equal widths (default 2)
+
         if el.attributes["col-count"] ~= nil then
           col_count = el.attributes["col-count"]
         else
           col_count = 2
         end
+
+        quarto.utils.dump(">>>>>> Equal widths: " .. col_count .. " columns")
+
         col_spec_middle = 
-          '<w:cols w:num="' .. col_count .. '" w:sep="' .. sep ..
-          '" w:space="' ..space .. '" w:equalWidth="1">'
+          '<w:cols w:num="' .. col_count .. '" w:sep="' .. col_sep ..
+          '" w:space="' .. col_space * 1440 .. '" w:equalWidth="1">'
         
       end
 
-      -- word generally puts the style info in the last par of the section, and
-      -- it's supposed to put the previous section's info i nthe last par of
-      -- _that_ section. but often it cheats and creates extra, empty pars w/
-      -- no content in them, just to store the section info (esp if it's a
-      -- single par section!). so maybe i should just be lazy and do it that
-      -- way. no doc scanning required?
+      -- construct the rest of the column spec
+      column_spec_inline =
+        '<w:pPr><w:sectPr><w:type w:val="continuous" />\n' ..
+        col_spec_middle ..
+        '</w:cols></w:sectPr></w:pPr>'
 
-      -- 1) write the style element with the column spec
-      -- TODO - column count, widths, gaps etc shouldn't be hardcoded!
-      col_spec_start = [[<w:pPr><w:sectPr><w:type w:val="continuous" />]]
-      col_spec_end = [[</w:cols></w:sectPr></w:pPr>]]
-
-      -- column_spec_inline = pandoc.RawInline("openxml",
-      -- [[  
-      --   <w:cols w:num="2" w:sep="1" w:space="720" w:equalWidth="0">
-      --     <w:col w:w="5760" w:space="720"/>
-      --     <w:col w:w="2880"/>
-      -- ]])
-      col_spec = col_spec_start .. col_spec_middle .. col_spec_end
-
-      -- should have w:space?
-      single_column_spec_inline = pandoc.RawInline("openxml",
+      -- we also need a single-column style definition at the start of our
+      -- section, so that the columns don't run all the way back to the start
+      -- of the document
+      prev_section_colspec_inline = pandoc.RawInline("openxml",
         [[<w:pPr><w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr></w:pPr>]])
 
       if #el.content > 1 then
         -- if there're multiple pars, insert the column specs into them inline
         quarto.utils.dump(">>> MULTI PAR SECTION")
-        table.insert(el.content[1].content, 1, single_column_spec_inline)
+        table.insert(el.content[1].content, 1, prev_section_colspec_inline)
         table.insert(el.content[#el.content].content, 1, column_spec_inline)
       else
-        -- quarto.utils.dump(">>> SINGLE PAR SECTION")
-        -- if not, create the dummy pars first
-        table.insert(el.content, 1, pandoc.Para(single_column_spec_inline))
+        -- if there's just one par, add dummy pars first
+        table.insert(el.content, 1, pandoc.Para(prev_section_colspec_inline))
         table.insert(el.content, #el.content + 1,
           pandoc.Para(column_spec_inline))
       end      
 
-      -- 4) now we need to insert a section break _before_ this
-      --    content (so that the column start in the right place)
-      --    can we be cheeky and just insert it at the start of
-      --    this content? no, they'll start one par late :/
-
       return el
-  
     end
   end
 }
@@ -153,13 +192,12 @@ columnFilterODT = {
   end
 }
 
-
 -- return the filter if the format matches
 -- NOTE - could use the pandoc global FORMAT here instead!
-if quarto.doc.isFormat("odt") then
-  return {columnFilterODT}
-elseif quarto.doc.isFormat("docx") then
+if quarto.doc.isFormat("docx") then
   return {columnFilterWord}
+-- elseif quarto.doc.isFormat("odt") then
+--   return {columnFilterODT}
 -- else if quarto.doc.isFormat("pdf") then
 --   return {columnFilterPDF}
 else
