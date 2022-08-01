@@ -37,6 +37,9 @@ columnFilterWord = {
   Div = function(el)
     
     if el.classes:includes("columnflow") then
+
+      quarto.utils.dump(">>> PROCESSING DIV.COLUMNFLOW. ATTRIBUTES ARE:")
+      quarto.utils.dump(el.attributes)
     
       -- 1) get the relevant attributes from the block attributes:
       --    - count: number of equal-width columns
@@ -45,13 +48,17 @@ columnFilterWord = {
       --        for each column except the last
       --    - sep: if provided, draw a line bwteen each column
 
-      -- draw a border if col-sep is present
-      col_sep = (el.attributes["col-sep"] ~= nil) and "1" or "0"
-      -- gap between columns: default to 720 (1440ths of an inch?)
+      -- draw a border if col-sep is present (and not "0")
+      col_sep = 
+        (el.attributes["col-sep"] ~= nil and
+          el.attributes["col-sep"] ~= "0") and
+        "1" or
+        "0"
+      -- gap between columns: default to 0.5 inches
       col_space =
         (el.attributes["col-spaces"] ~= nil) and
         el.attributes["col-spaces"] or
-        "720"
+        "0.5"
 
       -- 2) construct the middle of the column spec (where we actually define
       -- the number, width and spacing of columns)
@@ -81,7 +88,7 @@ columnFilterWord = {
         -- if one is specified, recycle it over all columns but the last
         -- if none are specified, recycle a default of 720 (0.5 inches)
         if (#col_space == 0) then
-          table.insert(col_space, "720")
+          table.insert(col_space, "0.5")
         end
         if (#col_space == 1) then
           while #col_space < n_col_widths do
@@ -95,19 +102,20 @@ columnFilterWord = {
             (a) specify the spacing after each column,
             (b) specify one spacing, to be used for all columns but the
               last,
-            (c) do not specify any spacing (default will be 720
+            (c) do not specify any spacing (default will be 0.5 inches
                 for all columns but the last) ]])
 
         -- begin the column spec with <w:cols>
         col_spec_middle =
-          '<w:cols w:num="' .. #col_widths .. '" w:sep="' .. col_sep .. '" w:equalWidth="0">\n'
+          [[<w:cols w:num="]] .. #col_widths .. [[" w:sep="]] .. col_sep ..
+          [[" w:equalWidth="0">\n]]
 
         -- add the <w:col> child elements, converting widths and spacing
         -- from inches to 1440ths of an inch as we go
         for i = 1,#col_widths do
           col_spec_middle = col_spec_middle ..
-            '<w:col w:w="' .. col_widths[i] * 1440 ..
-            '" w:space="' .. col_space[i] * 1440.. '"/>\n'
+            [[<w:col w:w="]] .. col_widths[i] * 1440 ..
+            [[" w:space="]] .. col_space[i] * 1440 .. [["/>\n]]
         end
         
       else
@@ -116,22 +124,29 @@ columnFilterWord = {
         if el.attributes["col-count"] ~= nil then
           col_count = el.attributes["col-count"]
         else
+          quarto.utils.dump(">>>>>> No col count specified; defaulting to 2")
           col_count = 2
         end
 
         quarto.utils.dump(">>>>>> Equal widths: " .. col_count .. " columns")
 
+        -- gap between columns: default to 0.5 inches
+        col_space =
+          (el.attributes["col-spaces"] ~= nil) and
+          el.attributes["col-spaces"] or
+          "0.5"
+
         col_spec_middle = 
-          '<w:cols w:num="' .. col_count .. '" w:sep="' .. col_sep ..
-          '" w:space="' .. col_space * 1440 .. '" w:equalWidth="1">'
+          [[<w:cols w:num="]] .. col_count .. [[" w:sep="]] .. col_sep ..
+          [[" w:space="]] .. col_space * 1440 .. [[" w:equalWidth="1">]]
         
       end
 
       -- construct the rest of the column spec
       column_spec_inline =
-        '<w:pPr><w:sectPr><w:type w:val="continuous" />\n' ..
+        [[<w:pPr><w:sectPr><w:type w:val="continuous" />\n]] ..
         col_spec_middle ..
-        '</w:cols></w:sectPr></w:pPr>'
+        [[</w:cols></w:sectPr></w:pPr>]]
 
       -- we also need a single-column style definition at the start of our
       -- section, so that the columns don't run all the way back to the start
@@ -182,7 +197,7 @@ columnFilterODT = {
 
       -- create the text:section that will hold our columned content
       pandoc.RawBlock("opendocument",
-        '<text:section text:style-name="Sect1" text:name="TextSection">')
+        [[<text:section text:style-name="Sect1" text:name="TextSection">]])
 
       -- create a style:style that will go in office:automatic-styles
   
