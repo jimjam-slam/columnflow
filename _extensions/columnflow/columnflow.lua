@@ -20,10 +20,10 @@ columnFilterWord = {
     -- abort if this blocklist isn't the main article body
     -- TODO - tighten this up! we need to be 100% sure this is the main article
     -- body and not some other subsection
-    if string.find(tostring(all_blocks[#all_blocks].content[1]), "<w:cols") then
+    if string.find(tostring(all_blocks[#all_blocks]), "<w:cols") then
       return all_blocks
     end
-      
+    
     -- just insert a single col spec right at the end
     table.insert(all_blocks, #all_blocks + 1,
       pandoc.RawBlock(
@@ -37,13 +37,10 @@ columnFilterWord = {
   Div = function(el)
     
     if el.classes:includes("columnflow") then
-
-      quarto.utils.dump(">>> PROCESSING DIV.COLUMNFLOW. ATTRIBUTES ARE:")
-      quarto.utils.dump(el.attributes)
     
       -- 1) get the relevant attributes from the block attributes:
       --    - count: number of equal-width columns
-      --    - widths: width of each column, separated by commas (+ opt. spaces)
+      --    - widths: width of each column, separated by spaces
       --    - space: spacing after each column. if one is provided, it's used
       --        for each column except the last
       --    - sep: if provided, draw a line bwteen each column
@@ -55,10 +52,11 @@ columnFilterWord = {
         "1" or
         "0"
       -- gap between columns: default to 0.5 inches
-      col_space =
-        (el.attributes["col-spaces"] ~= nil) and
-        el.attributes["col-spaces"] or
+      col_space_arg =
+        (el.attributes["col-space"] ~= nil) and
+        el.attributes["col-space"] or
         "0.5"
+
 
       -- 2) construct the middle of the column spec (where we actually define
       -- the number, width and spacing of columns)
@@ -66,38 +64,32 @@ columnFilterWord = {
       -- get the column width/color
       if el.attributes["col-widths"] ~= nil then
         -- unequal widths: split the widths up and map to column spec
-        quarto.utils.dump(">>>>>> Unequal width columns:")
         
         -- extract the widths
         col_widths = {}
-
-        for i in string.gmatch(col_widths, ",%S+") do
+        for i in string.gmatch(el.attributes["col-widths"], "%S*") do
+          print(i)
           table.insert(col_widths, i)
         end
-        quarto.utils.dump(col_widths)
 
         -- extract the space after each column
-        col_space = {}
-        for i in string.gmatch(col_space, ",%S+") do
-          table.insert(col_space, i)
+        col_spaces = {}
+        
+        for i in string.gmatch(col_space_arg, "%S*") do
+          table.insert(col_spaces, i)
         end
-        quarto.utils.dump(">>>>>> Spaces:")
-        quarto.utils.dump(col_space)
 
         -- check to make sure we have enough seps to match the widths.
         -- if one is specified, recycle it over all columns but the last
-        -- if none are specified, recycle a default of 720 (0.5 inches)
-        if (#col_space == 0) then
-          table.insert(col_space, "0.5")
-        end
-        if (#col_space == 1) then
-          while #col_space < n_col_widths do
-            table.insert(col_space, col_space[1])
+        if (#col_spaces == 1) then
+          while #col_spaces < #col_widths do
+            table.insert(col_spaces, col_spaces[1])
           end
           -- make the last col spacing 0 if we're relying on recycling
-          col_space[#col_space] = "0"
+          col_spaces[#col_spaces] = "0"
         end
-        assert(#col_widths ~= #col_space, [[
+
+        assert(#col_widths == #col_spaces, [[
           Error: when you specify columns of unequal widths, either:
             (a) specify the spacing after each column,
             (b) specify one spacing, to be used for all columns but the
@@ -115,7 +107,7 @@ columnFilterWord = {
         for i = 1,#col_widths do
           col_spec_middle = col_spec_middle ..
             [[<w:col w:w="]] .. col_widths[i] * 1440 ..
-            [[" w:space="]] .. col_space[i] * 1440 .. [["/>\n]]
+            [[" w:space="]] .. col_spaces[i] * 1440 .. [["/>\n]]
         end
         
       else
@@ -124,29 +116,26 @@ columnFilterWord = {
         if el.attributes["col-count"] ~= nil then
           col_count = el.attributes["col-count"]
         else
-          quarto.utils.dump(">>>>>> No col count specified; defaulting to 2")
           col_count = 2
         end
 
-        quarto.utils.dump(">>>>>> Equal widths: " .. col_count .. " columns")
-
         -- gap between columns: default to 0.5 inches
-        col_space =
+        col_spaces =
           (el.attributes["col-spaces"] ~= nil) and
           el.attributes["col-spaces"] or
           "0.5"
 
         col_spec_middle = 
           [[<w:cols w:num="]] .. col_count .. [[" w:sep="]] .. col_sep ..
-          [[" w:space="]] .. col_space * 1440 .. [[" w:equalWidth="1">]]
+          [[" w:space="]] .. col_spaces * 1440 .. [[" w:equalWidth="1">]]
         
       end
 
       -- construct the rest of the column spec
-      column_spec_inline =
+      column_spec_inline = pandoc.RawInline("openxml",
         [[<w:pPr><w:sectPr><w:type w:val="continuous" />\n]] ..
         col_spec_middle ..
-        [[</w:cols></w:sectPr></w:pPr>]]
+        [[</w:cols></w:sectPr></w:pPr>]])
 
       -- we also need a single-column style definition at the start of our
       -- section, so that the columns don't run all the way back to the start
@@ -156,7 +145,6 @@ columnFilterWord = {
 
       if #el.content > 1 then
         -- if there're multiple pars, insert the column specs into them inline
-        quarto.utils.dump(">>> MULTI PAR SECTION")
         table.insert(el.content[1].content, 1, prev_section_colspec_inline)
         table.insert(el.content[#el.content].content, 1, column_spec_inline)
       else
@@ -200,8 +188,6 @@ columnFilterODT = {
         [[<text:section text:style-name="Sect1" text:name="TextSection">]])
 
       -- create a style:style that will go in office:automatic-styles
-  
-      quarto.utils.dump(el.content)
   
     end
   end

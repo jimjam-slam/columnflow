@@ -63,11 +63,11 @@ Or in HTML:
 
 You can add attributes to the `.columnflow` block to customise the layout:
 
-* `col-widths`: specify the width of each column in inches, separated by commas (with optional spaces). If you specify this, the number of columns is inferred and `col-count` is ignored.
+* `col-widths`: specify the width of each column in inches, separated by spaces. If you specify this, the number of columns is inferred and `col-count` is ignored.
 * `col-count`: specify a number of equal-width columns.
 * `col-space`: specify the spacing after each column in inches. You can do this three ways:
   - specify a single number, which is used for all columns except the last (which will have no spacing after it).
-  - specify a number for each column, separated by commas (with optional spaces). Don't forget the last column!
+  - specify a number for each column, separated by spaces. Don't forget the last column!
   - do not specify this at all, and half an inch will be used for all columns but the last (which will have zero).
 * `col-sep`: add this to include a line between columns
 
