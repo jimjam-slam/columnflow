@@ -68,7 +68,6 @@ columnFilterWord = {
         -- extract the widths
         col_widths = {}
         for i in string.gmatch(el.attributes["col-widths"], "%S*") do
-          print(i)
           table.insert(col_widths, i)
         end
 
