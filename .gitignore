@@ -1,5 +1,10 @@
 # internal example testing folder
 examples/
 
+# rendered example quarto doc
+example.docx
+
 # system files
 .DS_Store
+.Rhistory
+
