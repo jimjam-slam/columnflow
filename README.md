@@ -1,8 +1,10 @@
 # columnflow
 
-(WIP) Quarto extension to add auto flowing columns work in Word (and potentially other formats). Potential inspo from https://github.com/jdutant/columns/blob/master/columns.lua too!
+Quarto extension/Pandoc filter to add auto flowing columns work in Word (and potentially other formats). Potential inspo from https://github.com/jdutant/columns/blob/master/columns.lua too!
 
 # Install
+
+## As a Quarto extension
 
 Quarto users ought to be able to install this as an extension:
 
@@ -10,7 +12,7 @@ Quarto users ought to be able to install this as an extension:
 quarto install extension jimjam-slam/columnflow
 ```
 
-Then add the filter to your document's frontmatter:
+Then add the extension to your document's frontmatter:
 
 ````
 ---
@@ -21,9 +23,46 @@ filters:
 ---
 ````
 
+## With other tools (Pandoc, RMarkdown, etc.)
+
+To use this filter outside Quarto, [**download `columnflow.lua`**](https://github.com/jimjam-slam/columnflow/raw/main/_extensions/columnflow/columnflow.lua). Then specify the downloaded filter file when you
+
+### In Pandoc
+
+In Pandoc, use the `--lua-filter` option to specify the file you've downloaded. (If you've saved it to another folder, you may need to give the whole path).
+
+```shell
+pandoc --lua-filter columnflow.lua -o mydocument.docx mydocument.md
+```
+
+## In RMarkdown
+
+In RMarkdown, you can specify the Lua filter either in the document frontmatter or in the render function.
+
+Here's an example of specifying it in the document frontmatter (assuming `columnflow.lua` is in the same directory as your document):
+
+```yaml
+---
+output:
+  word_document:
+    pandoc_args: ["--lua-filter=columnflow.lua"]
+---
+```
+
+Or you can specify the filter along with the Word document format when rendering:
+
+```r
+rmarkdown::render("mydocument.rmd",
+  word_document(pandoc_args = "--lua-filter=columnflow.lua"))
+```
+
+## In other tools
+
+Other Pandoc-based tools might have a different way of providing the Lua filter!
+
 # Use
 
-Surround a block with the `.columnflow` class to divide it into columns!
+**Surround a block with the `.columnflow` class to divide it into columns!**
 
 In Markdown:
 
@@ -106,7 +145,7 @@ Have a larger left column and a smaller right column, with half an inch in betwe
 # Roadmap
 
 - [x] Configuring columns (number, unequal widths)
-- [ ] Remove Quarto dependencies so that this can be used as a vanilla Pnadoc filter too
+- [x] Remove Quarto dependencies so that this can be used as a vanilla Pnadoc filter too
 - [ ] Testing with weird inputs (especially non-paragraph content in and around column sections)
 - [ ] Support for other output formats:
   - ODT
