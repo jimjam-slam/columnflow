@@ -193,13 +193,8 @@ columnFilterODT = {
 }
 
 -- return the filter if the format matches
--- NOTE - could use the pandoc global FORMAT here instead!
-if quarto.doc.isFormat("docx") then
+if FORMAT == "docx" then
   return {columnFilterWord}
--- elseif quarto.doc.isFormat("odt") then
---   return {columnFilterODT}
--- else if quarto.doc.isFormat("pdf") then
---   return {columnFilterPDF}
 else
   return
 end

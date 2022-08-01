@@ -1,6 +1,6 @@
 title: Columnflow
 author: James Goldie
-version: 0.0.2
+version: 0.1.0
 contributes:
   filters:
     - columnflow.lua
