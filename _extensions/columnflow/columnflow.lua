@@ -9,23 +9,28 @@ function intersection(a, b)
   return res
 end
 
--- the word filter has two elements:
---  - Div processes marked .columnflow sections, adding the user's specified
---    columns to the last par and a single-column section marker to the start
---  - Blocks adds a single-column spec to the very end of the doc (this is
---    required by Word's section rules)
-columnFilterWord = {
+wordFilters = {
+
+  --  wordBlocks adds a single-column spec to the very end of the doc (this is
+  --    required by Word's section rules)
   Blocks = function(all_blocks)
 
-    -- abort if this blocklist isn't the main article body
-    -- TODO - tighten this up! we need to be 100% sure this is the main article
-    -- body and not some other subsection
-    if string.find(tostring(all_blocks[#all_blocks]), "<w:cols") then
+    print(">>> Blocks invocation count: " .. tostring(blocks_runcount))
+    
+    -- abort if this filter has already run
+    if blocks_runcount > 0 then
       return all_blocks
     end
+    blocks_runcount = blocks_runcount + 1;
+    quarto.utils.dump("> RUNNING WORDBLOCKS")
+
+    quarto.utils.dump(">>> Adding single-col at the end, after:")
+    quarto.utils.dump(all_blocks[#all_blocks])
+
+    -- table.insert(el.content[#el.content].content, 1, column_spec_inline)
     
-    -- just insert a single col spec right at the end
-    table.insert(all_blocks, #all_blocks + 1,
+    -- just insert a single col spec inline to the last par of the doc
+    table.insert(all_blocks[#all_blocks].content, 1,
       pandoc.RawBlock(
         "openxml",
         [[<w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr>]]))
@@ -34,9 +39,13 @@ columnFilterWord = {
 
   end,
 
+  -- wordDiv marked .columnflow sections, adding the user's specified
+  --   columns to the last par and a single-column section marker to the start
   Div = function(el)
     
+    
     if el.classes:includes("columnflow") then
+      quarto.utils.dump("> RUNNING WORDDIV")
     
       -- 1) get the relevant attributes from the block attributes:
       --    - count: number of equal-width columns
@@ -56,7 +65,6 @@ columnFilterWord = {
         (el.attributes["col-space"] ~= nil) and
         el.attributes["col-space"] or
         "0.5"
-
 
       -- 2) construct the middle of the column spec (where we actually define
       -- the number, width and spacing of columns)
@@ -132,7 +140,7 @@ columnFilterWord = {
 
       -- construct the rest of the column spec
       column_spec_inline = pandoc.RawInline("openxml",
-        [[<w:pPr><w:sectPr><w:type w:val="continuous" />\n]] ..
+        [[<w:pPr><w:sectPr><w:type w:val="continuous" />]] ..
         col_spec_middle ..
         [[</w:cols></w:sectPr></w:pPr>]])
 
@@ -142,59 +150,73 @@ columnFilterWord = {
       prev_section_colspec_inline = pandoc.RawInline("openxml",
         [[<w:pPr><w:sectPr><w:type w:val="continuous" /><w:cols /></w:sectPr></w:pPr>]])
 
-      if #el.content > 1 then
-        -- if there're multiple pars, insert the column specs into them inline
-        table.insert(el.content[1].content, 1, prev_section_colspec_inline)
-        table.insert(el.content[#el.content].content, 1, column_spec_inline)
-      else
-        -- if there's just one par, add dummy pars first
-        table.insert(el.content, 1, pandoc.Para(prev_section_colspec_inline))
-        table.insert(el.content, #el.content + 1,
-          pandoc.Para(column_spec_inline))
-      end      
+      -- add an empty par at the start of the section for the 1-column spec,
+      -- and a multi-col spec the last par
+      -- quarto.utils.dump(">>> Adding single-col before:")
+      -- quarto.utils.dump(el.content[1])
+      table.insert(el.content, 1, pandoc.Para(prev_section_colspec_inline))
+      -- quarto.utils.dump(">>> Adding multi-col in:")
+      -- quarto.utils.dump(el.content[#el.content])
+      table.insert(el.content[#el.content].content, 1, column_spec_inline)
+
+      -- now add the multi-column spec: either to the last par if there're
+      -- multiple, or to an empty par at the end if there's just one
+      -- if #el.content > 1 then
+      --   -- if there're multiple pars, insert the column specs into them inline
+      -- else
+      --   -- if there's just one par, add dummy pars first
+      --   table.insert(el.content, #el.content + 1,
+      --     pandoc.Para(column_spec_inline))
+      -- end      
 
       return el
     end
   end
+
 }
 
-columnFilterODT = {
-  Div = function(el)
-    
-    if el.classes:includes("columns") then
-      -- do the thing
-      
-      -- it looks much easier in odt format:
-      -- the section gets a parent element, text:section, with properties:
-      --   text:style-name="Sect1" text:name="TextSection"
-      -- then, in office:automatic-styles, you define a style:style with:
-      --   style:name="Sect1" style:family="section"
-      -- it then gets, for example:
-      -- <style:style style:name="Sect1" style:family="section">
-      --   <style:section-properties text:dont-balance-text-columns="true" style:editable="false">
-      --     <style:columns fo:column-count="2">
-      --       <style:column style:rel-width="32769*" fo:start-indent="0in" fo:end-indent="0.25in" />
-      --       <style:column style:rel-width="32766*" fo:start-indent="0.25in" fo:end-indent="0in" />
-      --     </style:columns>
-      --   </style:section-properties>
-      -- </style:style>
-
-      -- odt writer:
-      -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/ODT.hs
-
-      -- create the text:section that will hold our columned content
-      pandoc.RawBlock("opendocument",
-        [[<text:section text:style-name="Sect1" text:name="TextSection">]])
-
-      -- create a style:style that will go in office:automatic-styles
+-- odtDiv (WIP)
+odtDiv = function(el)
   
-    end
-  end
-}
+  if el.classes:includes("columns") then
+    -- do the thing
+    
+    -- it looks much easier in odt format:
+    -- the section gets a parent element, text:section, with properties:
+    --   text:style-name="Sect1" text:name="TextSection"
+    -- then, in office:automatic-styles, you define a style:style with:
+    --   style:name="Sect1" style:family="section"
+    -- it then gets, for example:
+    -- <style:style style:name="Sect1" style:family="section">
+    --   <style:section-properties text:dont-balance-text-columns="true" style:editable="false">
+    --     <style:columns fo:column-count="2">
+    --       <style:column style:rel-width="32769*" fo:start-indent="0in" fo:end-indent="0.25in" />
+    --       <style:column style:rel-width="32766*" fo:start-indent="0.25in" fo:end-indent="0in" />
+    --     </style:columns>
+    --   </style:section-properties>
+    -- </style:style>
 
--- return the filter if the format matches
+    -- odt writer:
+    -- https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/ODT.hs
+
+    -- create the text:section that will hold our columned content
+    pandoc.RawBlock("opendocument",
+      [[<text:section text:style-name="Sect1" text:name="TextSection">]])
+
+    -- create a style:style that will go in office:automatic-styles
+
+  end
+end
+
+
 if FORMAT == "docx" then
-  return {columnFilterWord}
+  -- docx: run wordBlocks *once* on full doc; run wordDiv on ea. .columnflow div
+  quarto.utils.dump("> RUNNING WORD")
+  blocks_runcount = 0
+  traverse = "topdown"
+  return { wordFilters }
+-- else if FORMAT == "odt" then
+--   return {Div = odtDiv}
 else
   return
 end
