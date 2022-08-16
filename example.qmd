@@ -14,11 +14,15 @@ Phasellus et ex sit amet metus pellentesque dictum non eu magna. Etiam varius la
 
 Vivamus est arcu, varius in tellus nec, elementum blandit sem. Donec at lectus diam. Nam vulputate vel ante non venenatis. Proin eu gravida quam, ac posuere lectus. Ut dolor lacus, dapibus nec sodales nec, gravida at diam. Aliquam id quam id risus elementum consectetur non sit amet enim. Cras et accumsan tellus. Aenean a fringilla nibh. Proin pulvinar, arcu quis tincidunt porttitor, tortor nunc feugiat sem, id bibendum turpis libero et erat. Donec consequat justo sed euismod facilisis. Mauris quis felis rhoncus, vulputate urna ut, luctus leo.
 
+::: {.somethingelse}
 Mauris commodo tempus dui quis rutrum. Sed quis dolor mi. Fusce consequat elit eget diam mattis tempus. Sed eget arcu odio. Nullam tellus libero, placerat eget tempor ac, fringilla ut quam. Sed id nulla non dui tempor feugiat vel ac tortor. Maecenas non ultricies lacus. In tristique non mi sed volutpat. Donec vulputate interdum ex.
 
 Phasellus at lorem aliquam lorem varius rhoncus. Fusce eget ligula vel erat interdum tincidunt at id nunc. Nunc luctus magna ex, eu dignissim orci tempus nec. Etiam orci lacus, laoreet sed velit efficitur, mattis suscipit augue. Sed imperdiet enim a lorem elementum semper. Mauris volutpat tellus at laoreet condimentum. In ac ligula nec eros dictum rhoncus sed quis nisi. Pellentesque scelerisque, eros a egestas hendrerit, lacus neque maximus felis, quis luctus augue ipsum sed tellus. Phasellus ut augue ullamcorper, lacinia enim ut, gravida justo. Nunc eu ultrices neque. Aliquam eget ex est.
+:::
 
 Sed sit amet mi et mauris aliquam ullamcorper non sit amet sem. **Curabitur laoreet dapibus elit ut semper.** Maecenas vel ex orci. Morbi non lobortis metus, id tempus quam. Nam ac posuere dolor. Vivamus sit amet risus nec justo laoreet facilisis. Cras vehicula laoreet gravida. Cras sit amet egestas dolor. Cras justo magna, semper non nisi aliquam, viverra euismod urna. Suspendisse nec commodo orci. Vivamus vitae risus viverra metus pretium commodo placerat at nisi. Integer consequat tincidunt mollis.
+
+![A picture of Sonic](sonic.jpg){width="200px"}
 
 :::
 
@@ -26,7 +30,7 @@ Proin turpis quam, volutpat at ipsum in, imperdiet lacinia quam. Aenean in arcu 
 
 Donec semper eros magna, at egestas felis efficitur nec. Morbi eget eros nec odio efficitur maximus. Sed scelerisque luctus felis in ullamcorper. Suspendisse quis neque tempus erat laoreet consectetur a sed tortor. Ut urna justo, molestie sit amet iaculis a, blandit quis ipsum. Nullam ornare, arcu in dignissim ultrices, justo neque suscipit elit, sed eleifend mi nulla nec nibh. Donec ultricies, erat quis gravida condimentum, arcu dolor convallis risus, id malesuada mauris nulla et est. Maecenas sed dolor sed ligula vehicula tincidunt.
 
-::: {.columnflow col-count="3"}
+::: {.columnflow col-count="2"}
 
 Nulla gravida auctor neque, ac mollis dui. Mauris volutpat dolor at augue blandit, id posuere orci finibus. Donec interdum dui urna, viverra suscipit sapien blandit vel. Sed mattis fringilla quam, eget volutpat dui. Praesent tristique lectus tortor, vitae vehicula eros tristique nec. In magna leo, posuere vel vehicula vitae, consectetur a eros. Proin in lobortis risus. Aliquam eros justo, sollicitudin eget ipsum eu, convallis egestas mi. Suspendisse sagittis nisi sit amet dui placerat tempus. Duis at fringilla ante. Donec vel scelerisque urna, at vestibulum diam. Cras eget orci ipsum. Quisque semper, neque sit amet condimentum varius, diam erat lacinia mauris, a fermentum lorem nulla at libero. Ut eleifend dapibus sem in pulvinar. Phasellus eleifend sit amet dolor sed tempor. Sed luctus fermentum sem in efficitur.
 
